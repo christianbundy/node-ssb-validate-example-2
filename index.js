@@ -4,6 +4,7 @@ const isCanonicalBase64 = (base64String) =>
   Buffer.from(base64String, "base64").toString("base64") === base64String;
 
 const getValidationError = (message, state, hmacKey) => {
+  // state
   if (state == null) {
     state = { id: null, sequence: 0 };
   }
@@ -20,6 +21,7 @@ const getValidationError = (message, state, hmacKey) => {
     }
   }
 
+  // message
   if (typeof message !== "object") {
     return new Error("Message must be an object");
   }
@@ -31,8 +33,6 @@ const getValidationError = (message, state, hmacKey) => {
       "Message must decode a value with fewer than 8192 bytes (latin1)"
     );
   }
-
-  // . (key ordering
   const validOrders = [
     [
       "previous",
@@ -61,17 +61,15 @@ const getValidationError = (message, state, hmacKey) => {
     return new Error("Message must have a valid order");
   }
 
-  // .author
+  // message.author
   if (typeof message.author !== "string") {
     return new Error("Message author must be a string");
   }
-
   const authorSuffix = ".ed25519";
   if (message.author.endsWith(authorSuffix) === false) {
     return new Error(`Message author must end with '${authorSuffix}'`);
   }
-
-  // .sequence
+  // message.sequence
   if (typeof message.sequence !== "number") {
     return new Error("Message sequence must be a number");
   }
@@ -81,18 +79,19 @@ const getValidationError = (message, state, hmacKey) => {
     );
   }
 
-  // .hash
+  // message.hash
   if (message.hash !== "sha256") {
     return new Error("Message hash must be 'sha256'");
   }
-  // .timestamp
+
+  // message.timestamp
   if (typeof message.timestamp !== "number") {
     return new Error("Message timestamp must be a number");
   }
-  // .content
+
+  // message.content
   if (typeof message.content === "string") {
-    // -1 is magic number for "not found"
-    if (message.content.indexOf(".box") === -1) {
+    if (message.content.includes(".box") === false) {
       return new Error("Message content string must contain '.box'");
     }
     const boxCharacters = message.content.split(".box")[0];
@@ -106,7 +105,8 @@ const getValidationError = (message, state, hmacKey) => {
     if (Array.isArray(message.content)) {
       return new Error("Message content must not be an array");
     }
-    // .content.type
+
+    // mesage.content.type
     if (typeof message.content.type !== "string") {
       return new Error("Message content type must be a string");
     }
@@ -122,7 +122,7 @@ const getValidationError = (message, state, hmacKey) => {
     return new Error("Message content must be a string or an object");
   }
 
-  // .signature
+  // message.signature
   const signatureSuffix = `.sig.ed25519`;
   if (message.signature.endsWith(signatureSuffix) === false) {
     return new Error(`Message signature must end with '${signatureSuffix}'`);
@@ -140,11 +140,9 @@ const getValidationError = (message, state, hmacKey) => {
       `Signature must decode to a value with ${sodium.crypto_sign_BYTES} bytes`
     );
   }
-
   const unsignedMessageObject = Object.fromEntries(
     Object.entries(message).filter(([key]) => key !== "signature")
   );
-
   const unsignedMessageBytes = Buffer.from(
     JSON.stringify(unsignedMessageObject, null, 2)
   );
@@ -152,13 +150,11 @@ const getValidationError = (message, state, hmacKey) => {
     message.author.slice(0, -authorSuffix.length),
     "base64"
   );
-
   if (publicKey.length !== sodium.crypto_sign_PUBLICKEYBYTES) {
     return new Error(
       `Author must decode to a value with ${sodium.crypto_sign_PUBLICKEYBYTES} bytes`
     );
   }
-
   if (hmacKey == null) {
     const isValidSignature = sodium.crypto_sign_verify_detached(
       signatureBytes,
@@ -192,6 +188,7 @@ const getValidationError = (message, state, hmacKey) => {
     }
   }
 
+  // If we've made it this far, there are no errors.
   return null;
 };
 

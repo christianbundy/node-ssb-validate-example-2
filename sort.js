@@ -1,12 +1,20 @@
-const fs = require('fs')
+const fs = require("fs");
 
-const str = fs.readFileSync('fixtures/messages.json', 'utf8')
-const obj = JSON.parse(str)
+const str = fs.readFileSync("fixtures/messages.json", "utf8");
+const obj = JSON.parse(str);
 
-const validHmac = obj.filter((item) => item.hmac !== null && item.valid === true)
-const invalidHmac = obj.filter((item) => item.hmac !== null && item.valid === false)
-const validNoHmac = obj.filter((item) => item.hmac === null && item.valid === true)
-const invalidNoHmac = obj.filter((item) => item.hmac === null && item.valid === false)
+const validHmac = obj.filter(
+  (item) => item.hmac !== null && item.valid === true
+);
+const invalidHmac = obj.filter(
+  (item) => item.hmac !== null && item.valid === false
+);
+const validNoHmac = obj.filter(
+  (item) => item.hmac === null && item.valid === true
+);
+const invalidNoHmac = obj.filter(
+  (item) => item.hmac === null && item.valid === false
+);
 
 // I think this has an increasing order or difficulty?
 //
@@ -19,9 +27,9 @@ const orderedResult = [
   ...validNoHmac,
   ...invalidNoHmac,
   ...validHmac,
-  ...invalidHmac
-]
+  ...invalidHmac,
+];
 
-const orderedResultString = JSON.stringify(orderedResult, null ,2)
+const orderedResultString = JSON.stringify(orderedResult, null, 2);
 
-fs.writeFileSync('fixtures/messages.json', orderedResultString)
+fs.writeFileSync("fixtures/messages.json", orderedResultString);
