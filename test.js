@@ -17,12 +17,12 @@ messages.forEach(({ state, message, hmacKey, valid, error }) => {
     hmacKey,
   });
 
-  const validationError = getValidationError(message, state, hmacKey)
+  const validationError = getValidationError(message, state, hmacKey);
 
   if (validationError !== null) {
-    tap.equal(validationError.message, error)
+    tap.equal(validationError.message, error);
     if (validationError.message !== error) {
-      console.log(message)
+      console.log(message);
     }
   }
   if (result !== valid) {

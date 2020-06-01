@@ -1,5 +1,5 @@
-const readline = require('readline')
-const { getValidationError } = require('.')
+const readline = require("readline");
+const { getValidationError } = require(".");
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -7,25 +7,25 @@ const rl = readline.createInterface({
   terminal: false,
 });
 
-const data = []
+const data = [];
 
-rl.on('line', (line) => {
-  data.push(line)
-})
+rl.on("line", (line) => {
+  data.push(line);
+});
 
-rl.on('close', () => {
-  const entry = JSON.parse(data.join(''))
+rl.on("close", () => {
+  const entry = JSON.parse(data.join(""));
   try {
-    const { message, state, hmacKey } = entry
-    const error = getValidationError(message, state, hmacKey)
-    console.log(error)
+    const { message, state, hmacKey } = entry;
+    const error = getValidationError(message, state, hmacKey);
+    console.log(error);
     if (error === null) {
-      process.exit(0)
+      process.exit(0);
     } else {
-      process.exit(1)
+      process.exit(1);
     }
   } catch (e) {
-    console.log(e)
-    process.exit(1)
+    console.log(e);
+    process.exit(1);
   }
-})
+});

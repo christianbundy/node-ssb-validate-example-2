@@ -20,7 +20,6 @@ const getValidationError = (message, state, hmacKey) => {
     }
   }
 
-  // s
   if (typeof message !== "object") {
     return new Error("Message must be an object");
   }
@@ -66,8 +65,10 @@ const getValidationError = (message, state, hmacKey) => {
   if (typeof message.author !== "string") {
     return new Error("Message author must be a string");
   }
-  if (message.author.endsWith(".ed25519") === false) {
-    return new Error("Message author must end with '.ed25519'");
+
+  const authorSuffix = ".ed25519";
+  if (message.author.endsWith(authorSuffix) === false) {
+    return new Error(`Message author must end with '${authorSuffix}'`);
   }
 
   // .sequence
@@ -75,7 +76,9 @@ const getValidationError = (message, state, hmacKey) => {
     return new Error("Message sequence must be a number");
   }
   if (message.sequence !== state.sequence + 1) {
-    return new Error('Message sequence must be the previous sequence number plus one');
+    return new Error(
+      "Message sequence must be the previous sequence number plus one"
+    );
   }
 
   // .hash
@@ -120,13 +123,13 @@ const getValidationError = (message, state, hmacKey) => {
   }
 
   // .signature
-  const signatureSuffix = ".sig.ed25519";
+  const signatureSuffix = `.sig.ed25519`;
   if (message.signature.endsWith(signatureSuffix) === false) {
-    return new Error("Message signature must end with '.sig.ed25519'");
+    return new Error(`Message signature must end with '${signatureSuffix}'`);
   }
   const signatureCharacters = message.signature.slice(
     0,
-    message.signature.length - signatureSuffix.length
+    -signatureSuffix.length
   );
   if (isCanonicalBase64(signatureCharacters) === false) {
     return new Error("Signature base64 must be canonical");
@@ -145,7 +148,10 @@ const getValidationError = (message, state, hmacKey) => {
   const unsignedMessageBytes = Buffer.from(
     JSON.stringify(unsignedMessageObject, null, 2)
   );
-  const publicKey = Buffer.from(message.author.split(".ed25519")[0], "base64");
+  const publicKey = Buffer.from(
+    message.author.slice(0, -authorSuffix.length),
+    "base64"
+  );
 
   if (publicKey.length !== sodium.crypto_sign_PUBLICKEYBYTES) {
     return new Error(
