@@ -9,7 +9,7 @@ const getValidationError = (message, state, hmacKey) => {
   }
 
   // hmacKey
-  if (hmacKey !== null) {
+  if (hmacKey != null) {
     if (typeof hmacKey !== "string") {
       return new Error("HMAC key must be a string");
     }
@@ -75,7 +75,7 @@ const getValidationError = (message, state, hmacKey) => {
     return new Error("Message sequence must be a number");
   }
   if (message.sequence !== state.sequence + 1) {
-    return false;
+    return new Error('Message sequence must be the previous sequence number plus one');
   }
 
   // .hash

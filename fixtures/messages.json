@@ -1864,6 +1864,7 @@
       },
       "signature": "zqHrgxcxy9umsPaR7FHHn4PFq5Dsev0T3ZTEJbjW7Xqka0GofVls6sVRK69rXbNkecP4UHORPhPZ6c8EN6FADg==.sig.ed25519"
     },
+    "error": "Message sequence must be the previous sequence number plus one",
     "valid": false
   },
   {
