@@ -3,26 +3,34 @@ const sodium = require("sodium-native");
 const isCanonicalBase64 = (base64String) =>
   Buffer.from(base64String, "base64").toString("base64") === base64String;
 
-module.exports = (value, state = { id: null, sequence: 0 }, hmacKey) => {
+const getValidationError = (message, state, hmacKey) => {
+  if (state == null) {
+    state = { id: null, sequence: 0 };
+  }
+
   // hmacKey
   if (hmacKey !== null) {
     if (typeof hmacKey !== "string") {
-      return false;
+      return new Error("HMAC key must be a string");
     }
     if (Buffer.from(hmacKey, "base64").length !== sodium.crypto_auth_KEYBYTES) {
-      return false;
+      return new Error(
+        `HMAC key must decode to a value with ${sodium.crypto_auth_KEYBYTES} bytes`
+      );
     }
   }
 
-  // .
-  if (typeof value !== "object") {
-    return false;
+  // s
+  if (typeof message !== "object") {
+    return new Error("Message must be an object");
   }
-  if (value == null) {
-    return false;
+  if (message == null) {
+    return new Error("Message must not be null");
   }
-  if (Buffer.byteLength(JSON.stringify(value, null, 2), "latin1") > 8192) {
-    return false;
+  if (Buffer.byteLength(JSON.stringify(message, null, 2), "latin1") > 8192) {
+    return new Error(
+      "Message must decode a value with fewer than 8192 bytes (latin1)"
+    );
   }
 
   // . (key ordering
@@ -46,97 +54,103 @@ module.exports = (value, state = { id: null, sequence: 0 }, hmacKey) => {
       "signature",
     ],
   ];
-  const keys = Object.keys(value);
+  const keys = Object.keys(message);
   const hasValidOrder = validOrders.some((order) => {
     return JSON.stringify(order) === JSON.stringify(keys);
   });
   if (hasValidOrder === false) {
-    return false;
+    return new Error("Message must have a valid order");
   }
 
   // .author
-  if (typeof value.author !== "string") {
-    return false;
+  if (typeof message.author !== "string") {
+    return new Error("Message author must be a string");
   }
-  if (value.author.endsWith("ed25519") === false) {
-    return false;
+  if (message.author.endsWith(".ed25519") === false) {
+    return new Error("Message author must end with '.ed25519'");
   }
 
   // .sequence
-  if (typeof value.sequence !== "number") {
-    return false;
+  if (typeof message.sequence !== "number") {
+    return new Error("Message sequence must be a number");
   }
-  if (value.sequence !== state.sequence + 1) {
+  if (message.sequence !== state.sequence + 1) {
     return false;
   }
 
   // .hash
-  if (value.hash !== "sha256") {
-    return false;
+  if (message.hash !== "sha256") {
+    return new Error("Message hash must be 'sha256'");
   }
   // .timestamp
-  if (typeof value.timestamp !== "number") {
-    return false;
+  if (typeof message.timestamp !== "number") {
+    return new Error("Message timestamp must be a number");
   }
   // .content
-  if (typeof value.content === "string") {
+  if (typeof message.content === "string") {
     // -1 is magic number for "not found"
-    if (value.content.indexOf(".box") === -1) {
-      return false;
+    if (message.content.indexOf(".box") === -1) {
+      return new Error("Message content string must contain '.box'");
     }
-    const boxCharacters = value.content.split(".box")[0];
+    const boxCharacters = message.content.split(".box")[0];
     if (isCanonicalBase64(boxCharacters) === false) {
-      return false;
+      return new Error("Message content string base64 must be canonical");
     }
-  } else if (typeof value.content === "object") {
-    if (value.content === null) {
-      return false;
+  } else if (typeof message.content === "object") {
+    if (message.content === null) {
+      return new Error("Message content must not be null");
     }
-    if (Array.isArray(value.content)) {
-      return false;
+    if (Array.isArray(message.content)) {
+      return new Error("Message content must not be an array");
     }
     // .content.type
-    if (typeof value.content.type !== "string") {
-      return false;
+    if (typeof message.content.type !== "string") {
+      return new Error("Message content type must be a string");
     }
-    if (value.content.type.length > 52) {
-      return false;
+    if (message.content.type.length > 52) {
+      return new Error(
+        "Message content type length must not be greater than 52"
+      );
     }
-    if (value.content.type.length < 3) {
-      return false;
+    if (message.content.type.length < 3) {
+      return new Error("Message content type length must not be less than 3");
     }
   } else {
-    return false;
+    return new Error("Message content must be a string or an object");
   }
 
   // .signature
   const signatureSuffix = ".sig.ed25519";
-  if (value.signature.endsWith(signatureSuffix) === false) {
-    return false;
+  if (message.signature.endsWith(signatureSuffix) === false) {
+    return new Error("Message signature must end with '.sig.ed25519'");
   }
-  const signatureCharacters = value.signature.slice(
+  const signatureCharacters = message.signature.slice(
     0,
-    value.signature.length - signatureSuffix.length
+    message.signature.length - signatureSuffix.length
   );
   if (isCanonicalBase64(signatureCharacters) === false) {
-    return false;
+    return new Error("Signature base64 must be canonical");
   }
   const signatureBytes = Buffer.from(signatureCharacters, "base64");
   if (signatureBytes.length !== sodium.crypto_sign_BYTES) {
-    return false;
+    return new Error(
+      `Signature must decode to a value with ${sodium.crypto_sign_BYTES} bytes`
+    );
   }
 
   const unsignedMessageObject = Object.fromEntries(
-    Object.entries(value).filter(([key]) => key !== "signature")
+    Object.entries(message).filter(([key]) => key !== "signature")
   );
 
   const unsignedMessageBytes = Buffer.from(
     JSON.stringify(unsignedMessageObject, null, 2)
   );
-  const publicKey = Buffer.from(value.author.split(".ed25519")[0], "base64");
+  const publicKey = Buffer.from(message.author.split(".ed25519")[0], "base64");
 
   if (publicKey.length !== sodium.crypto_sign_PUBLICKEYBYTES) {
-    return false;
+    return new Error(
+      `Author must decode to a value with ${sodium.crypto_sign_PUBLICKEYBYTES} bytes`
+    );
   }
 
   if (hmacKey == null) {
@@ -147,7 +161,9 @@ module.exports = (value, state = { id: null, sequence: 0 }, hmacKey) => {
     );
 
     if (isValidSignature !== true) {
-      return false;
+      return new Error(
+        "Signature value must verify the unsigned message bytes"
+      );
     }
   } else {
     const out = Buffer.alloc(sodium.crypto_auth_BYTES);
@@ -164,9 +180,25 @@ module.exports = (value, state = { id: null, sequence: 0 }, hmacKey) => {
     );
 
     if (isValidSignature !== true) {
-      return false;
+      return new Error(
+        "Signature value must verify the unsigned message bytes"
+      );
     }
   }
 
-  return true;
+  return null;
+};
+
+const isValid = (message, state, hmacKey) => {
+  const error = getValidationError(message, state, hmacKey);
+  if (error === null) {
+    return true;
+  } else {
+    return false;
+  }
+};
+
+module.exports = {
+  isValid,
+  getValidationError,
 };

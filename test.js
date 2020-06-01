@@ -1,6 +1,6 @@
 const tap = require("tap");
 const fs = require("fs");
-const isValid = require("./");
+const { isValid } = require("./");
 
 const isValidWord = {
   true: "valid",
@@ -8,11 +8,11 @@ const isValidWord = {
 };
 
 const messages = JSON.parse(fs.readFileSync("fixtures/messages.json", "utf8"));
-messages.forEach(({ state, value, hmacKey, valid }) => {
-  const result = isValid(value, state != null ? state : undefined, hmacKey);
+messages.forEach(({ state, message, hmacKey, valid }) => {
+  const result = isValid(message, state, hmacKey);
 
   tap.equal(result, valid, `Message should be ${isValidWord[valid]}`, {
-    value,
+    message,
     state,
     hmacKey,
   });
